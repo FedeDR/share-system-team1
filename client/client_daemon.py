@@ -127,7 +127,7 @@ class ServerCommunicator(object):
         local_path = get_abspath(dst_path)
 
         if r.status_code == 200:
-            return local_path, r.text
+            return local_path, r.json()
         else:
             return False, False
 
@@ -482,7 +482,6 @@ def load_config():
         config_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
         config_ini.set('daemon_communication', 'file_log_level', "ERROR")
 
-        snapshot_file = config_ini.get('daemon_communication', 'snapshot_file_path')
         config = {
             "host": config_ini.get('cmd', 'host'),
             "port": config_ini.get('cmd', 'port'),
@@ -495,14 +494,17 @@ def load_config():
             "stdout_log_level": config_ini.get('daemon_communication', 'stdout_log_level'),
             "file_log_level": config_ini.get('daemon_communication', 'file_log_level'),
             "dir_path": config_ini.get('daemon_communication', 'dir_path'),
-            "snapshot_file_path": snapshot_file
+            "snapshot_file_path": config_ini.get('daemon_communication', 'snapshot_file_path')
         }
         try:
             os.makedirs(dir_path)
         except OSError:
             pass
-        with open(snapshot_file, 'w') as snapshot:
+
+    if not os.path.exists(config["snapshot_file_path"]):
+        with open(config["snapshot_file_path"], 'w') as snapshot:
             json.dump({"timestamp": 0, "snapshot": ""}, snapshot)
+
 
     try:
         config["username"] = config_ini.get('daemon_user_data', 'username')
@@ -966,7 +968,7 @@ def main():
     while not user_exists:
         asyncore.poll(timeout=1.0)
         config, user_exists = load_config()
-    print config
+
     server_com = ServerCommunicator(
         server_url=config['server_url'],
         username=config['username'],
