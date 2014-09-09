@@ -2,6 +2,9 @@
 #-*- coding: utf-8 -*-
 
 import os
+import json
+import time
+import shutil
 
 
 class EnvironmentManager(object):
@@ -50,7 +53,28 @@ class EnvironmentManager(object):
         self.dmn_test_dir = dmn_test_dir
         self.svr_usr_datafile = svr_usr_datafile
         self.svr_usr_dir = svr_usr_dir
-        self.dmn_istance_list = []
+        self.dmn_istance_list = {}
+        self.inc_id = 1
         self.started_process = []
 
+        self.sync_time = time.time()
+
+        self.dmn_port = 6666
         self.init_time = 5
+
+        #reset base environment tree
+        if os.path.exists(self.dmn_test_dir):
+            shutil.rmtree(self.dmn_test_dir)
+
+        if os.path.exists(self.svr_usr_dir):
+            shutil.rmtree(self.svr_usr_dir)
+
+        os.makedirs(self.dmn_test_dir)
+        os.makedirs(self.svr_usr_dir)
+
+        with open(self.svr_usr_datafile, 'w') as datafile:
+            to_save = {
+                "users": {}
+            }
+            json.dump(to_save, datafile)
+
