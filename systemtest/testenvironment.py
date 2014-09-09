@@ -4,6 +4,7 @@
 import os
 import json
 import time
+import re
 import ConfigParser
 import shutil
 from passlib.hash import sha256_crypt
