@@ -4,7 +4,9 @@
 import os
 import json
 import time
+import ConfigParser
 import shutil
+from passlib.hash import sha256_crypt
 #import check password server function
 from ...server.server import PasswordChecker as password_checker
 
@@ -104,6 +106,60 @@ class EnvironmentManager(object):
                 "users": {}
             }
             json.dump(to_save, datafile)
+
+    def _ist_propagation(self, ist_id):
+        # istance's folder tree creation
+        istance_path = os.path.join(self.dmn_test_dir, ist_id)
+        conf_path = os.path.join(istance_path, 'config')
+        share_path = os.path.join(istance_path, 'share')
+        os.makedirs(istance_path)
+        os.makedirs(conf_path)
+        os.makedirs(share_path)
+
+        # istance's config file creation
+        daemon_ini = ConfigParser.ConfigParser()
+        daemon_ini.add_section('cmd')
+        daemon_ini.set('cmd', 'host', 'localhost')
+        daemon_ini.set('cmd', 'port', self.dmn_port)
+        daemon_ini.add_section('daemon_communication')
+        daemon_ini.set('daemon_communication', 'snapshot_file_path', 'snapshot_file.json')
+        daemon_ini.set('daemon_communication', 'dir_path', share_path)
+        daemon_ini.set('daemon_communication', 'server_url', 'localhost')
+        daemon_ini.set('daemon_communication', 'server_port', 5000)
+        daemon_ini.set('daemon_communication', 'api_prefix', 'API/v1')
+        daemon_ini.set('daemon_communication', 'crash_repo_path', os.path.join(conf_path, 'RawBox_crash_report.log'))
+        daemon_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
+        daemon_ini.set('daemon_communication', 'file_log_level', "ERROR")
+        daemon_ini.add_section('daemon_user_data')
+        daemon_ini.set('daemon_user_data', 'username', self.dmn_istance_list[ist_id]['usr'])
+        daemon_ini.set('daemon_user_data', 'password', self.dmn_istance_list[ist_id]['psw'])
+        daemon_ini.set('daemon_user_data', 'active', self.dmn_istance_list[ist_id]['dmn_rec'])
+
+        with open(os.path.join(conf_path, 'config.ini'), 'w') as f:
+            daemon_ini.write(f)
+        self.dmn_port += 1
+
+        # istance's void snapshot file creation
+        open(os.path.join(conf_path, 'snapshot_file.json'), 'w').write('{}')
+
+        # propagation in server user_data.json
+        if self.dmn_istance_list[ist_id]['svr_rec']:
+            with open(self.svr_usr_datafile, 'rw') as datafile:
+                svr_conf = json.load(datafile)
+                svr_conf['users'] = {
+                    self.dmn_istance_list[ist_id]['usr']: {
+                        "paths": {
+                            '': [
+                                self.dmn_istance_list[ist_id]['usr'],
+                                None,
+                                self.sync_time
+                            ]
+                        },
+                        "psw": sha256_crypt.encrypt(self.dmn_istance_list[ist_id]['psw']),
+                        "timestamp": self.sync_time,
+                    },
+                }
+                json.dump(svr_conf, datafile)
 
     def add_dmn_istance(self, ist_id=None, credential=None, svr_rec=False, dmn_rec=False):
         '''
