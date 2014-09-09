@@ -10,6 +10,11 @@ import shutil
 from passlib.hash import sha256_crypt
 #import check password server function
 from ...server.server import PasswordChecker as password_checker
+import signal
+import subprocess
+
+INIT_TIME = 3
+
 
 def check_password(password):
     '''
@@ -35,6 +40,21 @@ def check_username(username):
     '''
     email_regex = re.compile('[^@]+@[^@]+\.[^@]+')
     return email_regex.match(username)
+
+
+def start_proc(command):
+    return subprocess.Popen(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        close_fds=True,
+        preexec_fn=os.setsid
+    )
+
+
+def terminate_proc(proc):
+    os.killpg(os.getpgid(proc), signal.SIGTERM)
 
 
 class EnvironmentManager(object):
@@ -107,6 +127,37 @@ class EnvironmentManager(object):
                 "users": {}
             }
             json.dump(to_save, datafile)
+
+    def _start_serverproc(self):
+        '''
+        start a server subprocess. The proc will be accessible in self.svr_process
+        '''
+        command = 'python {}'.format(os.path.join(self.svr_src_path, 'server.py'))
+        self.svr_process = start_proc(command)
+        time.sleep(INIT_TIME)
+
+    def _stop_serverproc(self):
+        '''
+        stop a running server subprocess
+        '''
+        if self.svr_process:
+            terminate_proc(self.svr_process)
+
+    def _start_daemonproc(self, ist_id):
+        '''
+        execute inizialization routine for the istance identified by ist_id:
+        it will propagate folder structure, config for daemon and server and it will start a daemon subprocess
+        '''
+        if ist_id in self.dmn_istance_list:
+            command = 'cd {}; python {}'.format(
+                os.path.join(self.dmn_test_dir, ist_id, 'config'),
+                os.path.join(self.dmn_src_path, 'client', 'client_daermon.py')
+            )
+            self.dmn_istance_list[ist_id]['process'] = start_proc(command)
+
+    def _stop_daemonproc(self, ist_id):
+        if ist_id in self.dmn_istance_list and not self.dmn_istance_list[ist_id]['process'].poll():
+            terminate_proc(self.dmn_istance_list[ist_id]['process'])
 
     def _ist_propagation(self, ist_id):
         # istance's folder tree creation
