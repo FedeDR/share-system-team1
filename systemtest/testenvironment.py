@@ -15,10 +15,32 @@ from server import PasswordChecker
 #import client daemon snapshot manager object
 from client import DirSnapshotManager
 
+import string
+import random
+import hashlib
 import signal
 import subprocess
 
 INIT_TIME = 3
+def rand_content(size=4, chars=string.ascii_uppercase + string.digits):
+    ''' function for random string creation '''
+
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def create_file(folder):
+    '''
+    function for random file creation in a specific folder.
+    return the path of file and the md5 of content
+    '''
+    while True:
+        filename = rand_content()
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(filepath):
+            content = rand_content(10)
+            open(filepath, 'w').write(content)
+            md5 = hashlib.md5(content).hexdigest()
+            return filepath, md5
 
 
 def check_password(password):
@@ -341,4 +363,27 @@ class EnvironmentManager(object):
         '''
         self.dmn_istance_list[ist_id]['self_sync'] = self_sync
         self.dmn_istance_list[ist_id]['server_sync'] = server_sync
+
+    def add_rndfile_to_ist(self, ist_id, num_file=10, relpath=None):
+        '''
+        add text random files to specified istance's relpath
+        '''
+        if relpath:
+            main_path = os.path.join(
+                self.dmn_istance_list[ist_id]['share_path'],
+                relpath)
+        else:
+            main_path = self.dmn_istance_list[ist_id]['share_path']
+
+        if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
+            self.dmn_istance_list[ist_id]['svr_filelist'] = {}
+
+        for e_file in range(num_file):
+            full_path, md5 = create_file(main_path)
+            rel_path = os.path.relpath(full_path, main_path)
+            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = [
+                os.path.join(self.dmn_istance_list[ist_id]['usr'], rel_path),
+                md5,
+                self.sync_time
+            ]
 
