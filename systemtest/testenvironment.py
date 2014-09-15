@@ -59,7 +59,14 @@ def start_proc(command):
 
 
 def terminate_proc(proc):
-    os.killpg(os.getpgid(proc), signal.SIGTERM)
+    '''
+    send SIGTERM to process
+    paramenters:
+        proc - subprocess object
+    '''
+    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+
+
 def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr_dir):
     '''
     save the init user information on the server userdata storage system
