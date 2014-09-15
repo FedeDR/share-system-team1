@@ -388,7 +388,7 @@ class ServerCommunicatorTest(unittest.TestCase):
         #check if methods are equal
         self.assertEqual(method, 'GET')
         #check response's body
-        self.assertEqual(response[1], u'[{"title": "Test"}]')
+        self.assertEqual(response[1], [{"title": "Test"}])
 
         #Case: server bad request
         def _try_request(self, *args, **kwargs):
@@ -609,9 +609,10 @@ class FileSystemOperatorTest(unittest.TestCase):
         if not os.path.exists(self.client_path):
             os.makedirs(self.client_path)
         httpretty.enable()
+        test_json = json.dumps('stringa_test')
         httpretty.register_uri(httpretty.GET, 'http://localhost/api/v1/files/{}'.format(self.filename),
-            body='this is a test',
-            content_type='text/plain')
+            body='"this is a test"',
+            content_type='json')
         self.snapshot_manager = DirSnapshotManager()
         self.server_com = ServerCommunicator(
             server_url='http://localhost/api/v1',
