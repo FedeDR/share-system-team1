@@ -63,26 +63,26 @@ class EnvironmentManager(object):
 
     def __init__(
         self,
-        dmn_src_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '/client'),
-        svr_src_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '/server/'),
+        dmn_src_path=os.path.join(os.getcwd(), 'client'),
+        svr_src_path=os.path.join(os.getcwd(), 'server'),
         dmn_test_dir=os.path.join(os.path.expanduser('~'), 'TestEnv'),
-        svr_usr_datafile=os.path.join(os.path.dirname(os.path.abspath(__file__)), "server", "user_data.json"),
-        svr_usr_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server', 'user_dirs/')
+        svr_usr_datafile=os.path.join(os.getcwd(), "server", "user_data.json"),
+        svr_usr_dir=os.path.join(os.getcwd(), 'server', 'user_dirs')
     ):
         '''
         Create a folder tree for the execution of system test.
         patameters:
             dmn_src_path - daemnon and cmd_manager source absolute path
-                default - os.path.join(os.path.dirname(os.path.abspath(__file__)),'/client/')
+                default - os.path.join(os.getcwd(),'/client/')
             svr_src_path - server source absolute path
-                default - os.path.join(os.path.dirname(os.path.abspath(__file__)),'/server/')
+                default - os.path.join(os.getcwd(),'/server/')
             dmn_test_dir - test absolute path of folder for inizialization daemon istance ambient.
                 for each daemon istance will create a dedicated folder that contain a config directory and a share directory
                 default - os.path.join(os.path.expanduser('~'), 'TestEnv')
             svr_usr_datafile - server user svr_usr_datafile absolute path
-                default - os.path.join(os.path.dirname(os.path.abspath(__file__)), "server", "user_data.json")
+                default - os.path.join(os.getcwd(), "server", "user_data.json")
             svr_usr_dir - server abspath path will contain user's synchronized folder
-                default - os.path.join(os.path.dirname(os.path.abspath(__file__), 'server/user_dirs/')
+                default - os.path.join(os.getcwd(), 'server/user_dirs/')
 
         Daemon's folder structure:
             |root
