@@ -8,8 +8,10 @@ import re
 import ConfigParser
 import shutil
 from passlib.hash import sha256_crypt
+
 #import check password server function
-from ...server.server import PasswordChecker as password_checker
+from server import PasswordChecker
+
 import signal
 import subprocess
 
@@ -24,7 +26,7 @@ def check_password(password):
 
     return a Boolean
     '''
-    if password_checker(password) == password:
+    if PasswordChecker(password) == password:
         return True
     else:
         return False
