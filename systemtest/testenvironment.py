@@ -329,3 +329,16 @@ class EnvironmentManager(object):
 
         return ist_id
 
+    def sync_dmn_share(self, ist_id, self_sync=True, server_sync=True):
+        '''
+        synchronize istance share folder in the configuration file.
+        Attributes:
+            ist_id - istance id
+            self_sync - boolean. if true it will synchronize the snapshot file
+                default True
+            server_sync - boolean. if true it will synchronize the server user data
+                default True
+        '''
+        self.dmn_istance_list[ist_id]['self_sync'] = self_sync
+        self.dmn_istance_list[ist_id]['server_sync'] = server_sync
+
