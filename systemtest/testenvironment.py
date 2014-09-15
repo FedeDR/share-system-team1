@@ -57,6 +57,16 @@ def start_proc(command):
 
 def terminate_proc(proc):
     os.killpg(os.getpgid(proc), signal.SIGTERM)
+class InputError(Exception):
+    '''
+    Exception raised for errors in the input parameters
+    '''
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 class EnvironmentManager(object):
@@ -162,13 +172,6 @@ class EnvironmentManager(object):
             terminate_proc(self.dmn_istance_list[ist_id]['process'])
 
     def _ist_propagation(self, ist_id):
-        # istance's folder tree creation
-        istance_path = os.path.join(self.dmn_test_dir, ist_id)
-        conf_path = os.path.join(istance_path, 'config')
-        share_path = os.path.join(istance_path, 'share')
-        os.makedirs(istance_path)
-        os.makedirs(conf_path)
-        os.makedirs(share_path)
 
         # istance's config file creation
         daemon_ini = ConfigParser.ConfigParser()
@@ -228,29 +231,56 @@ class EnvironmentManager(object):
             svr_rec - Boolean, mean the istance is registered on server yet.
                 default - False
             dmn_rec - Boolean, mean the istance is logged in yet
-                can be True only if svr_rec are True
+                can be True only if svr_rec is True
                 default - False
+        return: string istance id
         '''
         if not ist_id:
             condition = True
             while condition:
-                ist_id = ''.join(['ist_', self.inc_id])
+                ist_id = 'ist_{}'.format(self.inc_id)
                 if ist_id not in self.dmn_istance_list:
                     condition = False
                 self.inc_id += 1
         else:
             if ist_id in self.dmn_istance_list:
-                raise
+                raise InputError('id not valid')
 
-        self.dmn_istance_list[ist_id] = {
-            'svr_rec': svr_rec,
-            'dmn_rec': dmn_rec,
-        }
+        self.dmn_istance_list[ist_id] = {}
+        self.dmn_istance_list[ist_id]['dmn_port'] = self.dmn_port
+        self.dmn_port += 1
 
-        if svr_rec or dmn_rec:
+        if svr_rec:
             if check_password(credential['psw']) and check_username(credential['usr']):
                 self.dmn_istance_list[ist_id]['usr'] = credential['usr']
                 self.dmn_istance_list[ist_id]['psw'] = credential['psw']
+                self.dmn_istance_list[ist_id]['dmn_rec'] = dmn_rec
             else:
-                self.dmn_istance_list[ist_id]['usr'] = None
-                self.dmn_istance_list[ist_id]['psw'] = None
+                raise InputError('credential not valid')
+        else:
+            self.dmn_istance_list[ist_id]['usr'] = None
+            self.dmn_istance_list[ist_id]['psw'] = None
+            self.dmn_istance_list[ist_id]['dmn_rec'] = False
+        self.dmn_istance_list[ist_id]['svr_rec'] = svr_rec
+
+        self.sync_dmn_share(ist_id)
+
+        istance_path = os.path.join(self.dmn_test_dir, ist_id)
+        conf_path = os.path.join(istance_path, 'config')
+        share_path = os.path.join(istance_path, 'share')
+        self.dmn_istance_list[ist_id]['root_path'] = istance_path
+        self.dmn_istance_list[ist_id]['conf_path'] = conf_path
+        self.dmn_istance_list[ist_id]['share_path'] = share_path
+
+        if os.path.exists(istance_path):
+            shutil.rmtree(istance_path)
+        if os.path.exists(conf_path):
+            shutil.rmtree(conf_path)
+        if os.path.exists(share_path):
+            shutil.rmtree(share_path)
+        os.makedirs(istance_path)
+        os.makedirs(conf_path)
+        os.makedirs(share_path)
+
+        return ist_id
+
