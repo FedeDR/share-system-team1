@@ -12,6 +12,9 @@ from passlib.hash import sha256_crypt
 #import check password server function
 from server import PasswordChecker
 
+#import client daemon snapshot manager object
+from client import DirSnapshotManager
+
 import signal
 import subprocess
 
@@ -57,6 +60,76 @@ def start_proc(command):
 
 def terminate_proc(proc):
     os.killpg(os.getpgid(proc), signal.SIGTERM)
+def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr_dir):
+    '''
+    save the init user information on the server userdata storage system
+    parameters:
+        ist_information - dict with the daemon istance information
+            as EnvironmentManager's dmn_istance_list
+        svr_datastorage - server storage reference
+        sync_time - timestamp of synchronization
+    '''
+    try:
+        svr_conf = json.load(open(svr_datastorage, 'r'))
+    except IOError:
+        svr_conf = {
+            "users": {}
+        }
+
+    svr_conf['users'][ist_information['usr']] = {
+        "paths": {
+            '': [
+                ist_information['usr'],
+                None,
+                sync_time
+            ]
+        },
+        "psw": sha256_crypt.encrypt(ist_information['psw']),
+        "timestamp": sync_time,
+    }
+    if 'svr_filelist' in ist_information:
+        shutil.copytree(
+            ist_information['share_path'],
+            os.path.join(svr_usr_dir, ist_information['usr']))
+        svr_conf['users'][ist_information['usr']]['paths'].update(
+            ist_information['svr_filelist'])
+    json.dump(svr_conf, open(svr_datastorage, 'w'))
+
+
+def create_ist_conf_file(ist_information):
+    '''
+    create a daemon config.ini file in the configuration path
+    '''
+    daemon_ini = ConfigParser.ConfigParser()
+    daemon_ini.add_section('cmd')
+    daemon_ini.set('cmd', 'host', 'localhost')
+    daemon_ini.set('cmd', 'port', ist_information['dmn_port'])
+    daemon_ini.add_section('daemon_communication')
+    daemon_ini.set('daemon_communication', 'snapshot_file_path', 'snapshot_file.json')
+    daemon_ini.set('daemon_communication', 'dir_path', ist_information['share_path'])
+    daemon_ini.set('daemon_communication', 'server_url', 'localhost')
+    daemon_ini.set('daemon_communication', 'server_port', 5000)
+    daemon_ini.set('daemon_communication', 'api_prefix', 'API/v1')
+    daemon_ini.set('daemon_communication', 'crash_repo_path', os.path.join(ist_information['conf_path'], 'RawBox_crash_report.log'))
+    daemon_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
+    daemon_ini.set('daemon_communication', 'file_log_level', "ERROR")
+    daemon_ini.add_section('daemon_user_data')
+    daemon_ini.set('daemon_user_data', 'username', ist_information['usr'])
+    daemon_ini.set('daemon_user_data', 'password', ist_information['psw'])
+    daemon_ini.set('daemon_user_data', 'active', ist_information['dmn_rec'])
+
+    with open(os.path.join(ist_information['conf_path'], 'config.ini'), 'w') as f:
+        daemon_ini.write(f)
+
+
+def create_spanshot_file(share_path, timestamp, snap_path, synced=True):
+    open(snap_path, 'w').write('{}')
+
+    if synced:
+        snap_manager = DirSnapshotManager(snap_path, share_path)
+        snap_manager.save_snapshot(timestamp)
+
+
 class InputError(Exception):
     '''
     Exception raised for errors in the input parameters
@@ -172,51 +245,23 @@ class EnvironmentManager(object):
             terminate_proc(self.dmn_istance_list[ist_id]['process'])
 
     def _ist_propagation(self, ist_id):
-
         # istance's config file creation
-        daemon_ini = ConfigParser.ConfigParser()
-        daemon_ini.add_section('cmd')
-        daemon_ini.set('cmd', 'host', 'localhost')
-        daemon_ini.set('cmd', 'port', self.dmn_port)
-        daemon_ini.add_section('daemon_communication')
-        daemon_ini.set('daemon_communication', 'snapshot_file_path', 'snapshot_file.json')
-        daemon_ini.set('daemon_communication', 'dir_path', share_path)
-        daemon_ini.set('daemon_communication', 'server_url', 'localhost')
-        daemon_ini.set('daemon_communication', 'server_port', 5000)
-        daemon_ini.set('daemon_communication', 'api_prefix', 'API/v1')
-        daemon_ini.set('daemon_communication', 'crash_repo_path', os.path.join(conf_path, 'RawBox_crash_report.log'))
-        daemon_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
-        daemon_ini.set('daemon_communication', 'file_log_level', "ERROR")
-        daemon_ini.add_section('daemon_user_data')
-        daemon_ini.set('daemon_user_data', 'username', self.dmn_istance_list[ist_id]['usr'])
-        daemon_ini.set('daemon_user_data', 'password', self.dmn_istance_list[ist_id]['psw'])
-        daemon_ini.set('daemon_user_data', 'active', self.dmn_istance_list[ist_id]['dmn_rec'])
+        create_ist_conf_file(self.dmn_istance_list[ist_id])
 
-        with open(os.path.join(conf_path, 'config.ini'), 'w') as f:
-            daemon_ini.write(f)
-        self.dmn_port += 1
-
-        # istance's void snapshot file creation
-        open(os.path.join(conf_path, 'snapshot_file.json'), 'w').write('{}')
+        # istance's stapshot file creation
+        create_spanshot_file(
+            self.dmn_istance_list[ist_id]['share_path'],
+            self.sync_time,
+            os.path.join(self.dmn_istance_list[ist_id]['conf_path'], 'snapshot_file.json'),
+            self.dmn_istance_list[ist_id]['self_sync'])
 
         # propagation in server user_data.json
         if self.dmn_istance_list[ist_id]['svr_rec']:
-            with open(self.svr_usr_datafile, 'rw') as datafile:
-                svr_conf = json.load(datafile)
-                svr_conf['users'] = {
-                    self.dmn_istance_list[ist_id]['usr']: {
-                        "paths": {
-                            '': [
-                                self.dmn_istance_list[ist_id]['usr'],
-                                None,
-                                self.sync_time
-                            ]
-                        },
-                        "psw": sha256_crypt.encrypt(self.dmn_istance_list[ist_id]['psw']),
-                        "timestamp": self.sync_time,
-                    },
-                }
-                json.dump(svr_conf, datafile)
+            update_srv_userdata_adt(
+                self.dmn_istance_list[ist_id],
+                self.svr_usr_datafile,
+                self.sync_time,
+                self.svr_usr_dir)
 
     def add_dmn_istance(self, ist_id=None, credential=None, svr_rec=False, dmn_rec=False):
         '''
