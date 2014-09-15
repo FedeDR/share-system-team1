@@ -849,7 +849,9 @@ class DirSnapshotManagerTest(unittest.TestCase):
         self.unsinked_timestamp = 123125
         self.old_timestamp = 123122
 
-        self.snapshot_manager = DirSnapshotManager(self.conf_snap_path)
+        self.snapshot_manager = DirSnapshotManager(
+            self.conf_snap_path,
+            self.test_share_dir)
 
     def tearDown(self):
         self.environment.remove()

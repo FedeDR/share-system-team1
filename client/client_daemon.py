@@ -648,9 +648,10 @@ class DirectoryEventHandler(FileSystemEventHandler):
 
 
 class DirSnapshotManager(object):
-    def __init__(self, snapshot_file_path):
+    def __init__(self, snapshot_file_path, share_path):
         """ load the last global snapshot and create a instant_snapshot of local directory"""
         self.snapshot_file_path = snapshot_file_path
+        self.share_path = share_path
         self.last_status = self._load_status()
         self.local_full_snapshot = self.instant_snapshot()
 
@@ -697,7 +698,7 @@ class DirSnapshotManager(object):
         """ create a snapshot of directory """
 
         dir_snapshot = {}
-        for root, dirs, files in os.walk(CONFIG_DIR_PATH):
+        for root, dirs, files in os.walk(self.share_path):
             for f in files:
                 full_path = os.path.join(root, f)
                 file_md5 = self.file_snapMd5(full_path)
@@ -980,6 +981,7 @@ def main():
 
     snapshot_manager = DirSnapshotManager(
         snapshot_file_path=config['snapshot_file_path'],
+        share_path=config['dir_path']
     )
     
     server_com = ServerCommunicator(
