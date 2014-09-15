@@ -243,7 +243,7 @@ class EnvironmentManager(object):
         if ist_id in self.dmn_istance_list:
             command = 'cd {}; python {}'.format(
                 os.path.join(self.dmn_test_dir, ist_id, 'config'),
-                os.path.join(self.dmn_src_path, 'client', 'client_daermon.py')
+                os.path.join(self.dmn_src_path, 'client_daemon.py')
             )
             self.dmn_istance_list[ist_id]['process'] = start_proc(command)
 
