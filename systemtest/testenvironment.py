@@ -214,19 +214,12 @@ class EnvironmentManager(object):
         os.makedirs(self.dmn_test_dir)
         os.makedirs(self.svr_usr_dir)
 
-        with open(self.svr_usr_datafile, 'w') as datafile:
-            to_save = {
-                "users": {}
-            }
-            json.dump(to_save, datafile)
-
     def _start_serverproc(self):
         '''
         start a server subprocess. The proc will be accessible in self.svr_process
         '''
         command = 'python {}'.format(os.path.join(self.svr_src_path, 'server.py'))
         self.svr_process = start_proc(command)
-        time.sleep(INIT_TIME)
 
     def _stop_serverproc(self):
         '''
