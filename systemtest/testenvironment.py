@@ -21,7 +21,7 @@ import hashlib
 import signal
 import subprocess
 
-INIT_TIME = 3
+
 def rand_content(size=4, chars=string.ascii_uppercase + string.digits):
     ''' function for random string creation '''
 
@@ -219,12 +219,11 @@ class EnvironmentManager(object):
         self.svr_usr_dir = svr_usr_dir
         self.dmn_istance_list = {}
         self.inc_id = 1
-        self.started_process = []
 
         self.sync_time = time.time()
 
         self.dmn_port = 6666
-        self.init_time = 5
+        self.init_time = 3
 
         #reset base environment tree
         if os.path.exists(self.dmn_test_dir):
@@ -284,6 +283,27 @@ class EnvironmentManager(object):
                 self.svr_usr_datafile,
                 self.sync_time,
                 self.svr_usr_dir)
+
+    def start_test_environment(self):
+        # daemon settings propagation
+        for ist_id in self.dmn_istance_list:
+            self._ist_propagation(ist_id)
+
+        # start server process
+        self._start_serverproc()
+        time.sleep(self.init_time)
+
+        # start daemon process
+        for ist_id in self.dmn_istance_list:
+            self._start_daemonproc(ist_id)
+
+    def stop_test_environment(self):
+        # stop daemon process
+        for ist_id in self.dmn_istance_list:
+            self._stop_daemonproc(ist_id)
+
+        #stop server process
+        self._stop_serverproc()
 
     def add_dmn_istance(self, ist_id=None, credential=None, svr_rec=False, dmn_rec=False):
         '''
