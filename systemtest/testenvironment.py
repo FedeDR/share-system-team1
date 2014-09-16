@@ -70,6 +70,12 @@ def check_username(username):
 
 
 def start_proc(command):
+    '''
+    start subprocess
+    parameters:
+        command - shell command to start
+    return subprocess object
+    '''
     return subprocess.Popen(
         command,
         shell=True,
