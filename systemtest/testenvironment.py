@@ -305,6 +305,23 @@ class EnvironmentManager(object):
         #stop server process
         self._stop_serverproc()
 
+    def flush(self):
+        '''
+        remove environment file structure
+        '''
+        try:
+            shutil.rmtree(self.dmn_test_dir)
+        except OSError:
+            pass
+        try:
+            shutil.rmtree(self.svr_usr_dir)
+        except OSError:
+            pass
+        try:
+            os.remove(self.svr_usr_datafile)
+        except OSError:
+            pass
+
     def add_dmn_istance(self, ist_id=None, credential=None, svr_rec=False, dmn_rec=False):
         '''
         add an istance at the daemon istance list
