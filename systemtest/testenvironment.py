@@ -41,7 +41,7 @@ def create_file(folder):
             content = rand_content(10)
             open(filepath, 'w').write(content)
             md5 = hashlib.md5(content).hexdigest()
-            return filepath, md5
+            return filename, filepath, md5
 
 
 def check_password(password):
