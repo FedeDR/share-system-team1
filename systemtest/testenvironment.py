@@ -407,6 +407,24 @@ class EnvironmentManager(object):
         self.dmn_istance_list[ist_id]['self_sync'] = self_sync
         self.dmn_istance_list[ist_id]['server_sync'] = server_sync
 
+    def add_fld_to_ist(self, ist_id, folder):
+        '''
+        add new folder in istance's share directory identified by ist_id
+        '''
+        path = os.path.join(
+            self.dmn_istance_list[ist_id]['share_path'],
+            folder)
+        if not os.path.exists(path):
+            os.makedirs(path)
+            if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
+                self.dmn_istance_list[ist_id]['svr_filelist'] = {}
+            self.dmn_istance_list[ist_id]['svr_filelist'][folder] = [
+                os.path.join(self.dmn_istance_list[ist_id]['usr'], folder),
+                None,
+                self.sync_time
+            ]
+        return path
+
     def add_rndfile_to_ist(self, ist_id, num_file=10, relpath=None):
         '''
         add text random files to specified istance's relpath
