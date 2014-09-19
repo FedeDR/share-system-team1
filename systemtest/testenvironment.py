@@ -314,6 +314,9 @@ class EnvironmentManager(object):
         #stop server process
         self._stop_serverproc()
 
+    def get_share_path(self, ist_id):
+        return self.dmn_istance_list[ist_id]['share_path']
+
     def flush(self):
         '''
         remove environment file structure
