@@ -21,6 +21,7 @@ import hashlib
 import signal
 import subprocess
 
+import unittest
 
 def rand_content(size=4, chars=string.ascii_uppercase + string.digits):
     ''' function for random string creation '''
@@ -454,4 +455,21 @@ class EnvironmentManager(object):
             self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(
                 self.sync_time)
 
+
+class BlackBoxTest(unittest.TestCase):
+    '''
+    expand unittest functionality:
+        add inizialization of EnvironmentManager on setUp method
+            self.env
+        stop all subprocess and flush all temporary test file on tearDown method
+
+        add _check_folder method for testing share folder event propagation
+    '''
+
+    def setUp(self):
+        self.env = EnvironmentManager()
+
+    def tearDown(self):
+        self.env.stop_test_environment()
+        self.env.flush()
 
