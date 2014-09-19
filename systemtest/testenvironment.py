@@ -412,21 +412,28 @@ class EnvironmentManager(object):
         add text random files to specified istance's relpath
         '''
         if relpath:
-            main_path = os.path.join(
+            dst_path = os.path.join(
                 self.dmn_istance_list[ist_id]['share_path'],
                 relpath)
         else:
-            main_path = self.dmn_istance_list[ist_id]['share_path']
+            dst_path = self.dmn_istance_list[ist_id]['share_path']
 
         if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
             self.dmn_istance_list[ist_id]['svr_filelist'] = {}
 
         for e_file in range(num_file):
-            full_path, md5 = create_file(main_path)
-            rel_path = os.path.relpath(full_path, main_path)
-            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = [
-                os.path.join(self.dmn_istance_list[ist_id]['usr'], rel_path),
-                md5,
-                self.sync_time
-            ]
+            filename, full_path, md5 = create_file(dst_path)
+            rel_path = os.path.relpath(
+                full_path,
+                self.dmn_istance_list[ist_id]['share_path'])
+
+            if filename not in self.dmn_istance_list[ist_id]['svr_filelist']:
+                self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = []
+
+            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(
+                os.path.join(self.dmn_istance_list[ist_id]['usr'], rel_path))
+            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(md5)
+            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(
+                self.sync_time)
+
 
