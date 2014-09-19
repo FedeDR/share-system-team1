@@ -22,6 +22,8 @@ import signal
 import subprocess
 
 import unittest
+import filecmp
+
 
 def rand_content(size=4, chars=string.ascii_uppercase + string.digits):
     ''' function for random string creation '''
@@ -456,6 +458,40 @@ class EnvironmentManager(object):
                 self.sync_time)
 
 
+def check_folder(src_folder, dst_folder):
+    for root, dirs, files in os.walk(src_folder):
+        for f in files:
+            full_src_path = os.path.join(root, f)
+            rel_path = os.path.relpath(full_src_path, src_folder)
+            full_dst_path = os.path.join(dst_folder, rel_path)
+            try:
+                result = filecmp.cmp(full_src_path, full_dst_path)
+            except OSError:
+                result = False
+            if not result:
+                print "---"
+                print "check propagation for: {}".format(rel_path)
+                print "from: {}".format(full_src_path)
+                print "to: {}".format(full_dst_path)
+                return result
+    return result
+
+
+def check_propagation(first_folder, second_folder):
+    '''
+    check identity betwen two specific folders contenute
+    '''
+    # direct check
+    if not check_folder(first_folder, second_folder):
+        return False
+
+    # reverse check
+    if not check_folder(second_folder, first_folder):
+        return False
+
+    return True
+
+
 class BlackBoxTest(unittest.TestCase):
     '''
     expand unittest functionality:
@@ -468,8 +504,29 @@ class BlackBoxTest(unittest.TestCase):
 
     def setUp(self):
         self.env = EnvironmentManager()
+        self.num_try = 3
+        self.wait_time = 1
 
     def tearDown(self):
         self.env.stop_test_environment()
         self.env.flush()
 
+    def _check_folder(self):
+        cron = time.time()
+        for key, ist in self.env.dmn_istance_list.items():
+            retry = 0
+            while True:
+                print " try: {}".format(retry)
+                time.sleep(self.wait_time)
+                try:
+                    self.assertTrue(
+                        check_propagation(
+                            ist['share_path'],
+                            os.path.join(self.env.svr_usr_dir, ist['usr'])))
+                    break
+                except AssertionError:
+                    if retry >= self.num_try:
+                        raise
+                    else:
+                        retry += 1
+        print "check time: {}".format(time.time() - cron)
