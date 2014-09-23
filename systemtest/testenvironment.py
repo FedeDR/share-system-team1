@@ -296,6 +296,9 @@ class EnvironmentManager(object):
                 self.svr_usr_dir)
 
     def start_test_environment(self):
+        '''Start all enviromnent server and istance process
+        '''
+        print '\n--- START test enviromnent process'
         # daemon settings propagation
         for ist_id in self.dmn_istance_list:
             self._ist_propagation(ist_id)
@@ -308,14 +311,19 @@ class EnvironmentManager(object):
         for ist_id in self.dmn_istance_list:
             self._start_daemonproc(ist_id)
         time.sleep(self.init_time)
+        print 'Started'
 
     def stop_test_environment(self):
+        '''Stop all enviromnent server and istance process
+        '''
+        print 'STOP test environment process'
         # stop daemon process
         for ist_id in self.dmn_istance_list:
             self._stop_daemonproc(ist_id)
 
         #stop server process
         self._stop_serverproc()
+        print 'Stopped'
 
     def get_share_path(self, ist_id):
         return self.dmn_istance_list[ist_id]['share_path']
@@ -476,8 +484,7 @@ def check_folder(src_folder, dst_folder):
             except OSError:
                 result = False
             if not result:
-                print "---"
-                print "check propagation for: {}".format(rel_path)
+                print "ERROR check propagation for: {}".format(rel_path)
                 print "from: {}".format(full_src_path)
                 print "to: {}".format(full_dst_path)
                 return result
@@ -519,6 +526,7 @@ class BlackBoxTest(unittest.TestCase):
         self.env.flush()
 
     def _check_folder(self):
+        print '\n---- start checking folder'
         cron = time.time()
         for key, ist in self.env.dmn_istance_list.iteritems():
             retry = 0
@@ -536,4 +544,4 @@ class BlackBoxTest(unittest.TestCase):
                         raise
                     else:
                         retry += 1
-        print "check time: {}".format(time.time() - cron)
+        print '\nSuccess\n check time: {}\n'.format(time.time() - cron)
