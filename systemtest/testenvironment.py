@@ -131,6 +131,8 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
             os.path.join(svr_usr_dir, ist_information['usr']))
         svr_conf['users'][ist_information['usr']]['paths'].update(
             ist_information['svr_filelist'])
+    else:
+        os.makedirs(os.path.join(svr_usr_dir, ist_information['usr']))
     json.dump(svr_conf, open(svr_datastorage, 'w'))
 
 
@@ -305,6 +307,7 @@ class EnvironmentManager(object):
         # start daemon process
         for ist_id in self.dmn_istance_list:
             self._start_daemonproc(ist_id)
+        time.sleep(self.init_time)
 
     def stop_test_environment(self):
         # stop daemon process
@@ -462,6 +465,7 @@ class EnvironmentManager(object):
 
 
 def check_folder(src_folder, dst_folder):
+    result = True
     for root, dirs, files in os.walk(src_folder):
         for f in files:
             full_src_path = os.path.join(root, f)
@@ -516,7 +520,7 @@ class BlackBoxTest(unittest.TestCase):
 
     def _check_folder(self):
         cron = time.time()
-        for key, ist in self.env.dmn_istance_list.items():
+        for key, ist in self.env.dmn_istance_list.iteritems():
             retry = 0
             while True:
                 print " try: {}".format(retry)
