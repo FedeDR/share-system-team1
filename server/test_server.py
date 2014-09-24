@@ -20,6 +20,7 @@ import sys
 TEST_DIRECTORY = "test_users_dirs/"
 TEST_USER_DATA = "test_user_data.json"
 TEST_PENDING_USERS = "test_user_pending.tmp"
+TEST_RESET_REQUESTS = "test_reset_requests.tmp"
 
 TEST_ROOT = os.path.dirname(__file__)
 TEST_DIRECTORY = os.path.join(TEST_ROOT, TEST_DIRECTORY)
@@ -57,6 +58,12 @@ def add_active_user(user, psw=None):
     with open(TEST_USER_DATA, "w") as tmp_file:
         json.dump(underskin_user, tmp_file)
 
+def add_reset_request(user, code=None):
+    underskin_user = {}
+
+    underskin_user[user] = code
+    with open(TEST_RESET_REQUESTS, "w") as tmp_file:
+        json.dump(underskin_user, tmp_file)
 
 def server_setup(root):
     server.SERVER_ROOT = root
@@ -144,6 +151,12 @@ class TestFilesAPI(unittest.TestCase):
     )
     test_file_name = os.path.join(
         root, "user_dirs", user_test, "random_file.txt"
+    )
+    test_img_name = os.path.join(
+        root, "user_dirs", user_test, "image.png"
+    )
+    test_mp3_name = os.path.join(
+        root, "user_dirs", user_test, "audio.mp3"
     )
 
     @classmethod
@@ -250,17 +263,39 @@ class TestFilesAPI(unittest.TestCase):
         self.assertEqual(received.status_code, 401)
 
     def test_get(self):
+        # downloading file
         url = "{}{}".format(TestFilesAPI.url_radix, "random_file.txt")
         server_path = TestFilesAPI.test_file_name
-
-        # downloading file
+       
         received = self.tc.get(
             _API_PREFIX + url,
             headers=self.headers
         )
         self.assertEqual(received.status_code, 200)
-        with open(server_path, "r") as f:
-            self.assertEqual(json.loads(received.data), f.read())
+        with open(server_path, 'rb') as f:
+            self.assertEqual(received.data, f.read())
+        
+        # download png image
+        img_url = "{}{}".format(TestFilesAPI.url_radix, "image.png")
+        img_path = TestFilesAPI.test_img_name
+        
+        received = self.tc.get(
+            _API_PREFIX + img_url,
+            headers=self.headers)
+        self.assertEqual(received.status_code, 200)
+        with open(img_path, "rb") as i:
+            self.assertEqual(received.data, i.read())
+
+        # download mp3
+        mp3_url = "{}{}".format(TestFilesAPI.url_radix, "audio.mp3")
+        mp3_path = TestFilesAPI.test_mp3_name
+        
+        received = self.tc.get(
+            _API_PREFIX + mp3_url,
+            headers=self.headers)
+        self.assertEqual(received.status_code, 200)
+        with open(mp3_path, "rb") as mp3:
+            self.assertEqual(mp3.read(), received.data)
 
         # try to download file not present
         url = "{}{}".format(TestFilesAPI.url_radix, "NO_SERVER_PATH")
@@ -1303,7 +1338,8 @@ class EmailTest(unittest.TestCase):
 
     def test_create_user_email(self):
         data = {
-            "psw": self.psw
+            "psw": self.psw,
+            "reset": "False"
         }
         with self.mail.record_messages() as outbox:
             self.tc.post(self.url, data=data, headers=None)
@@ -1354,6 +1390,8 @@ class UserActions(unittest.TestCase):
 
         server.PENDING_USERS = TEST_PENDING_USERS
 
+        server.RESET_REQUESTS = TEST_RESET_REQUESTS
+
         open(TEST_USER_DATA, "w").close()
         server.USERS_DATA = TEST_USER_DATA
 
@@ -1361,6 +1399,7 @@ class UserActions(unittest.TestCase):
         self.psw = "$5$rounds=110000$9adcJL7bfKtZF/ii$p2vfrEbvs529hRMyQuW9LUIxiZvVKj8t62fB/7SZQSC"
         self.code = "5f8e441f01abc7b3e312917efb52cc12"  # os.urandom(16).encode('hex')
         self.url = "".join((server._API_PREFIX, "Users/", self.user))
+        self.url_reset_password = "".join((server._API_PREFIX, "Users/", UserActions.user, "/reset"))    #reset psw request
 
     def tearDown(self):
         server.mail_config_init = self.mail_init_bak
@@ -1369,6 +1408,8 @@ class UserActions(unittest.TestCase):
             os.remove(TEST_PENDING_USERS)
         if os.path.exists(TEST_USER_DATA):
             os.remove(TEST_USER_DATA)
+        if os.path.exists(TEST_RESET_REQUESTS):
+            os.remove(TEST_RESET_REQUESTS)
         try:
             shutil.rmtree(TEST_DIRECTORY)
         except OSError:
@@ -1376,7 +1417,8 @@ class UserActions(unittest.TestCase):
 
     def test_create_user_pw_too_short(self):
         data = {
-            "psw": "pro"
+            "psw": "pro",
+            "reset": "False"
         }
 
         response = self.tc.post(self.url, data=data, headers=None)
@@ -1384,14 +1426,16 @@ class UserActions(unittest.TestCase):
 
     def test_create_user_pw_too_common(self):
         data = {
-            "psw": "123456"
+            "psw": "123456",
+            "reset": "False"
         }
         response = self.tc.post(self.url, data=data, headers=None)
         self.assertEqual(response.status_code, server.HTTP_NOT_ACCEPTABLE)
 
     def test_create_user_too_easy(self):
         data = {
-            "psw": "provasemplice"
+            "psw": "provasemplice",
+            "reset": "False"
         }
 
         response = self.tc.post(self.url, data=data, headers=None)
@@ -1399,7 +1443,8 @@ class UserActions(unittest.TestCase):
 
     def test_create_user(self):
         data = {
-            "psw": self.psw
+            "psw": self.psw,
+            "reset": "False"
         }
 
         before_request_time = time.time()
@@ -1420,14 +1465,17 @@ class UserActions(unittest.TestCase):
             self.assertTrue(before_request_time < request_time < after_request_time)
 
     def test_create_user_missing_password(self):
-        data = {}
+        data = {
+            "reset": "False"
+        }
 
         response = self.tc.post(self.url, data=data, headers=None)
         self.assertEqual(response.status_code, server.HTTP_BAD_REQUEST)
 
     def test_create_user_that_is_already_pending(self):
         data = {
-            "psw": self.psw
+            "psw": self.psw,
+            "reset": "False"
         }
 
         add_active_user(self.user, self.psw)
@@ -1436,7 +1484,8 @@ class UserActions(unittest.TestCase):
 
     def test_create_user_that_is_already_active(self):
         data = {
-            "psw": self.psw
+            "psw": self.psw,
+            "reset": "False"
         }
 
         add_active_user(self.user, self.psw)
@@ -1445,7 +1494,8 @@ class UserActions(unittest.TestCase):
 
     def test_activate_user(self):
         data = {
-            "code": self.code
+            "code": self.code,
+            "reset": "False"
         }
 
         add_pending_user(self.user, self.psw, self.code)
@@ -1453,7 +1503,9 @@ class UserActions(unittest.TestCase):
         self.assertEqual(response.status_code, server.HTTP_CREATED)
 
     def test_activate_user_missing_code(self):
-        data = {}
+        data = {
+            "reset": "False"
+        }
 
         add_pending_user(self.user, self.psw)
         response = self.tc.put(self.url, data=data, headers=None)
@@ -1461,7 +1513,8 @@ class UserActions(unittest.TestCase):
 
     def test_activate_user_that_is_already_active(self):
         data = {
-            "code": self.code
+            "code": self.code,
+            "reset": "False"
         }
 
         add_active_user(self.user, self.psw)
@@ -1470,7 +1523,8 @@ class UserActions(unittest.TestCase):
 
     def test_activate_user_that_is_not_the_last_pending_user(self):
         data = {
-            "code": self.code
+            "code": self.code,
+            "reset": "False"
         }
 
         add_pending_user("fake_user@demo.it",
@@ -1480,6 +1534,95 @@ class UserActions(unittest.TestCase):
         response = self.tc.put(self.url, data=data, headers=None)
         self.assertEqual(response.status_code, server.HTTP_CREATED)
         self.assertTrue(os.path.exists(TEST_PENDING_USERS))
+
+    def test_reset_password_pending_user(self):
+        data = {
+            "reset": "True"
+        }
+
+        add_pending_user(self.user, self.psw, self.code)
+        response = self.tc.post(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_ACCEPTED)
+
+        with open(server.RESET_REQUESTS, "r") as reset_requests:
+            data = json.load(reset_requests)
+            user = data.keys()[0]
+            self.assertEqual(user, self.user)
+            code = data[self.user]
+            self.assertIsNotNone(code)
+            self.assertEqual(len(code), 32)
+
+    def test_reset_password_activated_user(self):
+        data = {
+            "reset": "True"
+        }
+
+        server.User(self.user, "old_password")   #user activated
+        response = self.tc.post(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_ACCEPTED)
+
+        with open(server.RESET_REQUESTS, "r") as reset_requests:
+            data = json.load(reset_requests)
+            user = data.keys()[0]
+            self.assertEqual(user, self.user)
+            code = data[self.user]
+            self.assertIsNotNone(code)
+            self.assertEqual(len(code), 32)
+
+    def test_set_password(self):
+        data = {
+            "reset": "True",
+            "code": self.code,
+            "psw": self.psw
+        }
+
+        server.User(self.user, "old_password")   #user activated
+        add_reset_request(self.user, self.code)
+        response = self.tc.put(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_ACCEPTED)
+
+    def test_set_password_wrong_code(self):
+        data = {
+            "reset": "True",
+            "code": "asd12312dasd1231asd",
+            "psw": self.psw
+        }
+
+        add_reset_request(self.user, self.code)
+        response = self.tc.put(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_NOT_FOUND)
+
+    def test_set_password_pending_user(self):
+        data = {
+            "reset": "True",
+            "code": self.code,
+            "psw": self.psw
+        }
+
+        add_pending_user(self.user, self.psw, self.code)
+        add_reset_request(self.user, self.code)
+        response = self.tc.put(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_ACCEPTED)
+
+    def test_reset_password_not_existent_user(self):
+        data = {
+            "reset": "True",
+            "code": self.code,
+            "psw": self.psw
+        }
+
+        response = self.tc.post(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_ACCEPTED)
+
+    def test_set_password_request_not_found(self):
+        data = {
+            "reset": "True",
+            "code": self.code,
+            "psw": self.psw
+        }
+
+        response = self.tc.put(self.url_reset_password, data=data, headers=None)
+        self.assertEqual(response.status_code, server.HTTP_NOT_FOUND)
 
     def test_activate_user_whose_directory_already_present(self):
         """
@@ -1496,7 +1639,7 @@ class UserActions(unittest.TestCase):
         def try_to_create_user():
             received = self.tc.put(
                 self.url,
-                data={"code": cls.code}
+                data={"code": cls.code, "reset": "False"}
             )
             return received
 
