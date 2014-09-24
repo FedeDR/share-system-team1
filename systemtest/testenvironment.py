@@ -14,6 +14,7 @@ from server import PasswordChecker
 
 #import client daemon snapshot manager object
 from client import DirSnapshotManager
+from client import client_daemon
 
 import string
 import random
@@ -147,9 +148,7 @@ def create_ist_conf_file(ist_information):
     daemon_ini.add_section('daemon_communication')
     daemon_ini.set('daemon_communication', 'snapshot_file_path', 'snapshot_file.json')
     daemon_ini.set('daemon_communication', 'dir_path', ist_information['share_path'])
-    daemon_ini.set('daemon_communication', 'server_url', 'localhost')
-    daemon_ini.set('daemon_communication', 'server_port', 5000)
-    daemon_ini.set('daemon_communication', 'api_prefix', 'API/v1')
+    daemon_ini.set('daemon_communication', 'server_url', 'http://localhost:5000/API/v1')
     daemon_ini.set('daemon_communication', 'crash_repo_path', os.path.join(ist_information['conf_path'], 'RawBox_crash_report.log'))
     daemon_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
     daemon_ini.set('daemon_communication', 'file_log_level', "ERROR")
@@ -162,8 +161,10 @@ def create_ist_conf_file(ist_information):
         daemon_ini.write(f)
 
 
-def create_spanshot_file(share_path, timestamp, snap_path, synced=True):
-    open(snap_path, 'w').write('{}')
+def create_spanshot_file(share_path, timestamp, snap_path, snap_sync, file_sync):
+    client_daemon.CONFIG_DIR_PATH = share_path
+    json.dump({"timestamp": 0, "snapshot": ""}, open(snap_path, 'w'))
+    # open(snap_path, 'w').write('{}')
 
     if synced:
         snap_manager = DirSnapshotManager(snap_path, share_path)
