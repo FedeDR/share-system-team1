@@ -152,7 +152,7 @@ class ServerCommunicator(object):
         local_path = get_abspath(dst_path)
 
         if r.status_code == requests.codes.ok:
-            return local_path, r.text
+            return local_path, r.content
         else:
             return False, False
 
