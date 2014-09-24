@@ -115,6 +115,10 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
         svr_conf = {
             "users": {}
         }
+    try:
+        os.makedirs(os.path.join(svr_usr_dir, ist_information['usr']))
+    except OSError:
+        pass
 
     svr_conf['users'][ist_information['usr']] = {
         "paths": {
@@ -128,13 +132,13 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
         "timestamp": sync_time,
     }
     if 'svr_filelist' in ist_information and ist_information['file_svr_sync']:
+        shutil.rmtree(os.path.join(svr_usr_dir, ist_information['usr']))
         shutil.copytree(
             ist_information['share_path'],
             os.path.join(svr_usr_dir, ist_information['usr']))
         svr_conf['users'][ist_information['usr']]['paths'].update(
             ist_information['svr_filelist'])
-    else:
-        os.makedirs(os.path.join(svr_usr_dir, ist_information['usr']))
+
     json.dump(svr_conf, open(svr_datastorage, 'w'))
 
 
