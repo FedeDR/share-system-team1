@@ -105,8 +105,9 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
     parameters:
         ist_information - dict with the daemon istance information
             as EnvironmentManager's dmn_istance_list
-        svr_datastorage - server storage reference
+        svr_datastorage - server storage datafile reference
         sync_time - timestamp of synchronization
+        svr_usr_dir - user file directory
     '''
     try:
         svr_conf = json.load(open(svr_datastorage, 'r'))
@@ -126,7 +127,7 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
         "psw": sha256_crypt.encrypt(ist_information['psw']),
         "timestamp": sync_time,
     }
-    if 'svr_filelist' in ist_information:
+    if 'svr_filelist' in ist_information and ist_information['file_svr_sync']:
         shutil.copytree(
             ist_information['share_path'],
             os.path.join(svr_usr_dir, ist_information['usr']))
@@ -166,7 +167,10 @@ def create_spanshot_file(share_path, timestamp, snap_path, snap_sync, file_sync)
     json.dump({"timestamp": 0, "snapshot": ""}, open(snap_path, 'w'))
     # open(snap_path, 'w').write('{}')
 
-    if synced:
+    if not file_sync:
+        shutil.rmtree(share_path)
+        os.makedirs(share_path)
+    if snap_sync:
         snap_manager = DirSnapshotManager(snap_path, share_path)
         snap_manager.save_snapshot(timestamp)
 
@@ -281,13 +285,6 @@ class EnvironmentManager(object):
         # istance's config file creation
         create_ist_conf_file(self.dmn_istance_list[ist_id])
 
-        # istance's stapshot file creation
-        create_spanshot_file(
-            self.dmn_istance_list[ist_id]['share_path'],
-            self.sync_time,
-            os.path.join(self.dmn_istance_list[ist_id]['conf_path'], 'snapshot_file.json'),
-            self.dmn_istance_list[ist_id]['self_sync'])
-
         # propagation in server user_data.json
         if self.dmn_istance_list[ist_id]['svr_rec']:
             update_srv_userdata_adt(
@@ -295,6 +292,14 @@ class EnvironmentManager(object):
                 self.svr_usr_datafile,
                 self.sync_time,
                 self.svr_usr_dir)
+
+        # istance's stapshot file creation
+        create_spanshot_file(
+            self.dmn_istance_list[ist_id]['share_path'],
+            self.sync_time,
+            os.path.join(self.dmn_istance_list[ist_id]['conf_path'], 'snapshot_file.json'),
+            self.dmn_istance_list[ist_id]['snap_sync'],
+            self.dmn_istance_list[ist_id]['file_dmn_sync'])
 
     def start_test_environment(self):
         '''Start all enviromnent server and istance process
@@ -412,18 +417,20 @@ class EnvironmentManager(object):
 
         return ist_id
 
-    def sync_dmn_share(self, ist_id, self_sync=True, server_sync=True):
+    def sync_dmn_share(self, ist_id, file_dmn_sync=True, file_svr_sync=True, snap_sync=True):
         '''
         synchronize istance share folder in the configuration file.
         Attributes:
             ist_id - istance id
-            self_sync - boolean. if true it will synchronize the snapshot file
+            file_dmn_sync - boolean. if true it will persist the file on daemon share dir
+            file_svr_sync - boolean. if true it will synchronize the server user data
                 default True
-            server_sync - boolean. if true it will synchronize the server user data
+            snap_sync - boolean. if true it will synchronize the snapshot file
                 default True
         '''
-        self.dmn_istance_list[ist_id]['self_sync'] = self_sync
-        self.dmn_istance_list[ist_id]['server_sync'] = server_sync
+        self.dmn_istance_list[ist_id]['file_dmn_sync'] = file_dmn_sync
+        self.dmn_istance_list[ist_id]['file_svr_sync'] = file_svr_sync
+        self.dmn_istance_list[ist_id]['snap_sync'] = snap_sync
 
     def add_fld_to_ist(self, ist_id, folder):
         '''

@@ -90,6 +90,18 @@ class IntegrationTest(BlackBoxTest):
 
         self._check_folder()
 
+    def test_new_daemon(self):
+        ist_id = self.env.add_dmn_istance(
+            credential={'usr': 'test@test.it', 'psw': 'TestPsw1<'},
+            svr_rec=True,
+            dmn_rec=False)
+
+        self.env.add_rndfile_to_ist(ist_id)
+        self.env.sync_dmn_share(ist_id, False, True, False)
+
+        self.env.start_test_environment()
+        self._check_folder()
+
 
 if __name__ == "__main__":
     unittest.main()
