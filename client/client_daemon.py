@@ -868,10 +868,20 @@ class DirSnapshotManager(object):
             f.write(
                 json.dumps({"timestamp": float(timestamp), "snapshot": self.last_status['snapshot']}))
 
+    def _remove_snap_orphan(self, md5_file):
+        self.local_full_snapshot[md5_file] = list(set(self.local_full_snapshot[md5_file]))
+        for path in list(self.local_full_snapshot[md5_file]):
+            if not os.path.exists(path):
+                self.local_full_snapshot[md5_file].remove(path)
+
     def update_snapshot_upload(self, body):
         """ update of local full snapshot by upload request"""
-        self.local_full_snapshot[self.file_snapMd5(
-            body['src_path'])] = [get_relpath(body["src_path"])]
+        md5_file = self.file_snapMd5(body['src_path'])
+        if md5_file in self.local_full_snapshot:
+            self.local_full_snapshot[md5_file].append(get_relpath(body["src_path"]))
+            self._remove_snap_orphan(md5_file)
+        else:
+            self.local_full_snapshot[md5_file] = [get_relpath(body["src_path"])]
 
     def update_snapshot_update(self, body):
         """ update of local full snapshot by update request"""
@@ -882,6 +892,7 @@ class DirSnapshotManager(object):
             # is a copy of another file
             self.local_full_snapshot[new_file_md5].append(
                 get_relpath(body['src_path']))
+            self._remove_snap_orphan(md5_file)
         else:
             # else create a new md5
             self.local_full_snapshot[new_file_md5] = [get_relpath(
@@ -889,24 +900,34 @@ class DirSnapshotManager(object):
 
     def update_snapshot_copy(self, body):
         """ update of local full snapshot by copy request"""
-        self.local_full_snapshot[self.file_snapMd5(
-            body['src_path'])].append(get_relpath(body["dst_path"]))
+        md5_file = self.file_snapMd5(body['src_path'])
+        paths_of_file = self.local_full_snapshot[md5_file]
+        paths_of_file.append(get_relpath(body["dst_path"]))
+        self._remove_snap_orphan(md5_file)
 
     def update_snapshot_move(self, body):
         """ update of local full snapshot by move request"""
-        paths_of_file = self.local_full_snapshot[self.file_snapMd5(
-            get_abspath(body["dst_path"]))]
-        paths_of_file.remove(get_relpath(body["src_path"]))
+        md5_file = self.file_snapMd5(get_abspath(body["dst_path"]))
+        paths_of_file = self.local_full_snapshot[md5_file]
+        try:
+            paths_of_file.remove(get_relpath(body["src_path"]))
+        except ValueError:
+            pass
         paths_of_file.append(get_relpath(body["dst_path"]))
+        self._remove_snap_orphan(md5_file)
 
     def update_snapshot_delete(self, body):
         """ update of local full snapshot by delete request"""
         md5_file = self.find_file_md5(self.local_full_snapshot, get_relpath(body['src_path']), False)
+        paths_of_file = self.local_full_snapshot[md5_file]
         logger.debug("find md5: {}".format(md5_file))
-        if len(self.local_full_snapshot[md5_file]) == 1:
-            del self.local_full_snapshot[md5_file]
-        else:
-            self.local_full_snapshot[md5_file].remove(get_relpath(body['src_path']))
+        if md5_file in self.local_full_snapshot:
+            try:
+                paths_of_file.remove(get_relpath(body['src_path']))
+            except ValueError:
+                pass
+            if len(self.local_full_snapshot[md5_file]) == 0:
+                del paths_of_file
         logger.debug("path deleted: " + get_relpath(body['src_path']))
 
     def save_timestamp(self, timestamp):
