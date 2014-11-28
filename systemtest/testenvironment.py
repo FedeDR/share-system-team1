@@ -134,7 +134,7 @@ def update_srv_userdata_adt(ist_information, svr_datastorage, sync_time, svr_usr
     if 'svr_filelist' in ist_information and ist_information['file_svr_sync']:
         shutil.rmtree(os.path.join(svr_usr_dir, ist_information['usr']))
         shutil.copytree(
-            ist_information['share_path'],
+            ist_information['rawbox_dir'],
             os.path.join(svr_usr_dir, ist_information['usr']))
         svr_conf['users'][ist_information['usr']]['paths'].update(
             ist_information['svr_filelist'])
@@ -152,7 +152,7 @@ def create_ist_conf_file(ist_information):
     daemon_ini.set('cmd', 'port', ist_information['dmn_port'])
     daemon_ini.add_section('daemon_communication')
     daemon_ini.set('daemon_communication', 'snapshot_file_path', 'snapshot_file.json')
-    daemon_ini.set('daemon_communication', 'dir_path', ist_information['share_path'])
+    daemon_ini.set('daemon_communication', 'dir_path', ist_information['rawbox_dir'])
     daemon_ini.set('daemon_communication', 'server_url', 'http://localhost:5000/API/v1')
     daemon_ini.set('daemon_communication', 'crash_repo_path', os.path.join(ist_information['conf_path'], 'RawBox_crash_report.log'))
     daemon_ini.set('daemon_communication', 'stdout_log_level', "DEBUG")
@@ -166,16 +166,16 @@ def create_ist_conf_file(ist_information):
         daemon_ini.write(f)
 
 
-def create_spanshot_file(share_path, timestamp, snap_path, snap_sync, file_sync):
-    client_daemon.CONFIG_DIR_PATH = share_path
+def create_spanshot_file(rawbox_dir, timestamp, snap_path, snap_sync, file_sync):
+    client_daemon.CONFIG_DIR_PATH = rawbox_dir
     json.dump({"timestamp": 0, "snapshot": ""}, open(snap_path, 'w'))
     # open(snap_path, 'w').write('{}')
 
     if not file_sync:
-        shutil.rmtree(share_path)
-        os.makedirs(share_path)
+        shutil.rmtree(rawbox_dir)
+        os.makedirs(rawbox_dir)
     if snap_sync:
-        snap_manager = DirSnapshotManager(snap_path, share_path)
+        snap_manager = DirSnapshotManager(snap_path, rawbox_dir)
         snap_manager.save_snapshot(timestamp)
 
 
@@ -224,7 +224,7 @@ class EnvironmentManager(object):
                                             -config.ini
                                             -snapshot.json
                                             -RawBox_crash_report.log
-                                    -share-
+                                    -rawbox-
                                             -file_to_share
         Server's folder structure:
             |root
@@ -299,7 +299,7 @@ class EnvironmentManager(object):
 
         # istance's stapshot file creation
         create_spanshot_file(
-            self.dmn_istance_list[ist_id]['share_path'],
+            self.dmn_istance_list[ist_id]['rawbox_dir'],
             self.sync_time,
             os.path.join(self.dmn_istance_list[ist_id]['conf_path'], 'snapshot_file.json'),
             self.dmn_istance_list[ist_id]['snap_sync'],
@@ -335,8 +335,8 @@ class EnvironmentManager(object):
         self._stop_serverproc()
         print 'Stopped'
 
-    def get_share_path(self, ist_id):
-        return self.dmn_istance_list[ist_id]['share_path']
+    def get_rawbox_dir(self, ist_id):
+        return self.dmn_istance_list[ist_id]['rawbox_dir']
 
     def flush(self):
         '''
@@ -404,20 +404,20 @@ class EnvironmentManager(object):
 
         istance_path = os.path.join(self.dmn_test_dir, ist_id)
         conf_path = os.path.join(istance_path, 'config')
-        share_path = os.path.join(istance_path, 'share')
+        rawbox_dir = os.path.join(istance_path, 'rawbox')
         self.dmn_istance_list[ist_id]['root_path'] = istance_path
         self.dmn_istance_list[ist_id]['conf_path'] = conf_path
-        self.dmn_istance_list[ist_id]['share_path'] = share_path
+        self.dmn_istance_list[ist_id]['rawbox_dir'] = rawbox_dir
 
         if os.path.exists(istance_path):
             shutil.rmtree(istance_path)
         if os.path.exists(conf_path):
             shutil.rmtree(conf_path)
-        if os.path.exists(share_path):
-            shutil.rmtree(share_path)
+        if os.path.exists(rawbox_dir):
+            shutil.rmtree(rawbox_dir)
         os.makedirs(istance_path)
         os.makedirs(conf_path)
-        os.makedirs(share_path)
+        os.makedirs(rawbox_dir)
 
         return ist_id
 
@@ -441,7 +441,7 @@ class EnvironmentManager(object):
         add new folder in istance's share directory identified by ist_id
         '''
         path = os.path.join(
-            self.dmn_istance_list[ist_id]['share_path'],
+            self.dmn_istance_list[ist_id]['rawbox_dir'],
             folder)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -460,10 +460,10 @@ class EnvironmentManager(object):
         '''
         if relpath:
             dst_path = os.path.join(
-                self.dmn_istance_list[ist_id]['share_path'],
+                self.dmn_istance_list[ist_id]['rawbox_dir'],
                 relpath)
         else:
-            dst_path = self.dmn_istance_list[ist_id]['share_path']
+            dst_path = self.dmn_istance_list[ist_id]['rawbox_dir']
 
         if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
             self.dmn_istance_list[ist_id]['svr_filelist'] = {}
@@ -472,7 +472,7 @@ class EnvironmentManager(object):
             filename, full_path, md5 = create_file(dst_path)
             rel_path = os.path.relpath(
                 full_path,
-                self.dmn_istance_list[ist_id]['share_path'])
+                self.dmn_istance_list[ist_id]['rawbox_dir'])
 
             if filename not in self.dmn_istance_list[ist_id]['svr_filelist']:
                 self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = []
@@ -548,7 +548,7 @@ class BlackBoxTest(unittest.TestCase):
                 try:
                     self.assertTrue(
                         check_propagation(
-                            ist['share_path'],
+                            ist['rawbox_dir'],
                             os.path.join(self.env.svr_usr_dir, ist['usr'])))
                     break
                 except AssertionError:

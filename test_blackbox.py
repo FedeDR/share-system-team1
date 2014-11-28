@@ -17,7 +17,7 @@ class IntegrationTest(BlackBoxTest):
         src_path = self.env.add_fld_to_ist(ist_id, 'src_path')
         self.env.add_rndfile_to_ist(ist_id, relpath='src_path')
         dst_path = os.path.join(
-            self.env.get_share_path(ist_id),
+            self.env.get_rawbox_dir(ist_id),
             'dst_path')
 
         self.env.start_test_environment()
@@ -36,7 +36,7 @@ class IntegrationTest(BlackBoxTest):
         src_path = self.env.add_fld_to_ist(ist_id, 'src_path')
         self.env.add_rndfile_to_ist(ist_id, relpath='src_path')
         dst_path = os.path.join(
-            self.env.get_share_path(ist_id),
+            self.env.get_rawbox_dir(ist_id),
             'dst_path')
 
         self.env.start_test_environment()
@@ -83,7 +83,7 @@ class IntegrationTest(BlackBoxTest):
 
         self.env.start_test_environment()
 
-        for root, dirs, files in os.walk(self.env.get_share_path(ist_id)):
+        for root, dirs, files in os.walk(self.env.get_rawbox_dir(ist_id)):
             for f in files:
                 filepath = os.path.join(root, f)
                 open(filepath, 'w').write(rand_content(15))
