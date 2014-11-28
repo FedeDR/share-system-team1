@@ -64,7 +64,7 @@ def check_username(username):
     parameters:
         username - string
 
-    retunr a Boolean
+    return a Boolean
     '''
     return EMAIL_REGEX.match(username)
 
@@ -199,8 +199,8 @@ class EnvironmentManager(object):
     ):
         '''
         Create a folder tree for the execution of system test.
-        patameters:
-            dmn_src_path - daemnon and cmd_manager source absolute path
+        parameters:
+            dmn_src_path - daemon and cmd_manager source absolute path
                 default - os.path.join(os.getcwd(),'/client/')
             svr_src_path - server source absolute path
                 default - os.path.join(os.getcwd(),'/server/')
@@ -226,7 +226,7 @@ class EnvironmentManager(object):
             |root
             -svr_usr_dir-
                         -username-
-                                 -file_to_shar
+                                 -file_to_share
         '''
         self.dmn_src_path = dmn_src_path
         self.svr_src_path = svr_src_path
