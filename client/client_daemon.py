@@ -805,6 +805,7 @@ class DirSnapshotManager(object):
         self.snapshot_file_path = snapshot_file_path
         self.last_status = self._load_status()
         self.local_full_snapshot = self.instant_snapshot()
+        self.conflicted_sync = False
 
     def local_check(self):
         """ check id daemon is synchronized with local directory """
@@ -903,19 +904,21 @@ class DirSnapshotManager(object):
         try:
             paths_of_file.remove(get_relpath(body["src_path"]))
         except ValueError:
-            pass
+            if not self.conflicted_sync:
+                raise
         paths_of_file.append(get_relpath(body["dst_path"]))
 
     def update_snapshot_delete(self, body):
         """ update of local full snapshot by delete request"""
         md5_file = self.find_file_md5(self.local_full_snapshot, get_relpath(body['src_path']), False)
-        paths_of_file = self.local_full_snapshot[md5_file]
         logger.debug("find md5: {}".format(md5_file))
         if md5_file in self.local_full_snapshot:
             try:
-                paths_of_file.remove(get_relpath(body['src_path']))
+                self.local_full_snapshot[md5_file].remove(
+                    get_relpath(body['src_path']))
             except ValueError:
-                pass
+                if not self.conflicted_sync:
+                    raise
             if len(self.local_full_snapshot[md5_file]) == 0:
                 del self.local_full_snapshot[md5_file]
         logger.debug("path deleted: " + get_relpath(body['src_path']))
@@ -970,6 +973,7 @@ class DirSnapshotManager(object):
         command_list = []
         #NO internal conflict
         if self.local_check():  # 1)
+            self.conflicted_sync = False
             if not self.is_syncro(server_timestamp):  # 1) b.
                 for new_server_path in new_server_paths:  # 1) b 1
                     server_md5 = self.find_file_md5(server_snapshot, new_server_path)
@@ -998,6 +1002,7 @@ class DirSnapshotManager(object):
 
         #internal conflicts
         else:  # 2)
+            self.conflicted_sync = True
             if self.is_syncro(server_timestamp):  # 2) a
                 logger.debug("****\tpush all\t****")
                 for new_server_path in new_server_paths:  # 2) a 1
@@ -1047,6 +1052,7 @@ class DirSnapshotManager(object):
                 for new_client_path in new_client_paths:  # 2) b 3
                     logger.debug("remove remote\t{}".format(new_client_path))
                     command_list.append({'remote_delete': [new_client_path]})
+            self.conflicted_sync = False
 
         return command_list
 
