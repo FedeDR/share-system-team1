@@ -4,7 +4,6 @@
 import os
 import json
 import time
-import re
 import ConfigParser
 import shutil
 from passlib.hash import sha256_crypt
@@ -55,12 +54,10 @@ def check_password(password):
 
     return a Boolean
     '''
-    if PasswordChecker(password) == password:
-        return True
-    else:
-        return False
+    return PasswordChecker(password) == password
 
 
+from client import EMAIL_REGEX
 def check_username(username):
     '''
     username checker adapter
@@ -69,8 +66,7 @@ def check_username(username):
 
     retunr a Boolean
     '''
-    email_regex = re.compile('[^@]+@[^@]+\.[^@]+')
-    return email_regex.match(username)
+    return EMAIL_REGEX.match(username)
 
 
 def start_proc(command):
