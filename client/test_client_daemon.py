@@ -1182,6 +1182,9 @@ class DirSnapshotManagerTest(unittest.TestCase):
         self.assertEqual(self.snapshot_manager.local_full_snapshot, original_snapshot)
 
     def test_update_snapshot_update(self):
+        #inhibit _remove_snap_orphan function
+        self.snapshot_manager._remove_snap_orphan = self._void_function
+
         original_snapshot = copy.deepcopy(self.snapshot_manager.local_full_snapshot)
         mock_snapshot = copy.deepcopy(original_snapshot)
         mock_file_content = "test_content"
@@ -1226,7 +1229,13 @@ class DirSnapshotManagerTest(unittest.TestCase):
         }
         self.snapshotAsserEqual(self.snapshot_manager.local_full_snapshot, mock_snapshot)
 
+    def _void_function(self, *args, **kwargs):
+        pass
+
     def test_update_snapshot_copy(self):
+        #inhibit _remove_snap_orphan function
+        self.snapshot_manager._remove_snap_orphan = self._void_function
+
         mock_snapshot = copy.deepcopy(self.snapshot_manager.local_full_snapshot)
         original_snapshot = copy.deepcopy(mock_snapshot)
         mock_copy_path = self.test_file_1 + "_copy"
@@ -1239,6 +1248,9 @@ class DirSnapshotManagerTest(unittest.TestCase):
         self.snapshot_manager.local_full_snapshot = original_snapshot
 
     def test_update_snapshot_move(self):
+        #inhibit _remove_snap_orphan function
+        self.snapshot_manager._remove_snap_orphan = self._void_function
+
         original_snapshot = copy.deepcopy(self.snapshot_manager.local_full_snapshot)
         mock_snapshot = copy.deepcopy(original_snapshot)
         mock_new_dest = self.test_file_1 + "_new_dest"
@@ -1254,6 +1266,9 @@ class DirSnapshotManagerTest(unittest.TestCase):
         os.remove(mock_new_dest)
 
     def test_update_snapshot_delete(self):
+        #inhibit _remove_snap_orphan function
+        self.snapshot_manager._remove_snap_orphan = self._void_function
+
         mock_snapshot = copy.deepcopy(self.snapshot_manager.local_full_snapshot)
         original_snapshot = copy.deepcopy(mock_snapshot)
         del mock_snapshot['fea80f2db003d4ebc4536023814aa885']
