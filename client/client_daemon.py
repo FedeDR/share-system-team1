@@ -892,7 +892,7 @@ class DirSnapshotManager(object):
             # is a copy of another file
             self.local_full_snapshot[new_file_md5].append(
                 get_relpath(body['src_path']))
-            self._remove_snap_orphan(md5_file)
+            self._remove_snap_orphan(new_file_md5)
         else:
             # else create a new md5
             self.local_full_snapshot[new_file_md5] = [get_relpath(
@@ -927,7 +927,7 @@ class DirSnapshotManager(object):
             except ValueError:
                 pass
             if len(self.local_full_snapshot[md5_file]) == 0:
-                del paths_of_file
+                del self.local_full_snapshot[md5_file]
         logger.debug("path deleted: " + get_relpath(body['src_path']))
 
     def save_timestamp(self, timestamp):
