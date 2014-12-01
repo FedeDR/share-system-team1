@@ -385,35 +385,42 @@ class EnvironmentManager(object):
 
         if svr_rec:
             if check_password(credential['psw']) and check_username(credential['usr']):
-                self.dmn_istance_list[ist_id]['usr'] = credential['usr']
-                self.dmn_istance_list[ist_id]['psw'] = credential['psw']
-                self.dmn_istance_list[ist_id]['dmn_rec'] = dmn_rec
+                user_dict = {
+                    'usr': credential['usr'],
+                    'psw': credential['psw'],
+                    'dmn_rec': dmn_rec,
+                    'svr_rec': svr_rec,
+                }
             else:
                 raise InputError('credential not valid')
         else:
-            self.dmn_istance_list[ist_id]['usr'] = None
-            self.dmn_istance_list[ist_id]['psw'] = None
-            self.dmn_istance_list[ist_id]['dmn_rec'] = False
-        self.dmn_istance_list[ist_id]['svr_rec'] = svr_rec
+            user_dict = {
+                'usr': None,
+                'psw': None,
+                'dmn_rec': False,
+                'svr_rec': svr_rec,
+            }
+        self.dmn_istance_list[ist_id].update(user_dict)
 
         self.sync_dmn_share(ist_id)
 
-        istance_path = os.path.join(self.dmn_test_dir, ist_id)
-        conf_path = os.path.join(istance_path, 'config')
-        rawbox_dir = os.path.join(istance_path, 'rawbox')
-        self.dmn_istance_list[ist_id]['root_path'] = istance_path
-        self.dmn_istance_list[ist_id]['conf_path'] = conf_path
-        self.dmn_istance_list[ist_id]['rawbox_dir'] = rawbox_dir
+        instance_path = os.path.join(self.dmn_test_dir, ist_id)
+        path_dict = {
+            'root_path': instance_path,
+            'conf_path': os.path.join(instance_path, 'config'),
+            'rawbox_dir': os.path.join(instance_path, 'rawbox'),
+        }
+        self.dmn_istance_list[ist_id].update(path_dict)
 
-        if os.path.exists(istance_path):
-            shutil.rmtree(istance_path)
-        if os.path.exists(conf_path):
-            shutil.rmtree(conf_path)
-        if os.path.exists(rawbox_dir):
-            shutil.rmtree(rawbox_dir)
-        os.makedirs(istance_path)
-        os.makedirs(conf_path)
-        os.makedirs(rawbox_dir)
+        if os.path.exists(path_dict['root_path']):
+            shutil.rmtree(path_dict['root_path'])
+        if os.path.exists(path_dict['conf_path']):
+            shutil.rmtree(path_dict['conf_path'])
+        if os.path.exists(path_dict['rawbox_dir']):
+            shutil.rmtree(path_dict['rawbox_dir'])
+        os.makedirs(path_dict['root_path'])
+        os.makedirs(path_dict['conf_path'])
+        os.makedirs(path_dict['rawbox_dir'])
 
         return ist_id
 
