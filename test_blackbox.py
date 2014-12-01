@@ -97,7 +97,11 @@ class IntegrationTest(BlackBoxTest):
             dmn_rec=False)
 
         self.env.add_rndfile_to_ist(ist_id)
-        self.env.sync_dmn_share(ist_id, False, True, False)
+        self.env.sync_dmn_share(
+            ist_id,
+            file_dmn_sync=False,
+            file_svr_sync=True,
+            snap_sync=False)
 
         self.env.start_test_environment()
         self._check_folder()
