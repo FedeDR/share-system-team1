@@ -805,6 +805,8 @@ class DirSnapshotManager(object):
         self.snapshot_file_path = snapshot_file_path
         self.last_status = self._load_status()
         self.local_full_snapshot = self.instant_snapshot()
+
+        #flag enabled only when there is a conflict in sinchronize. enable inhibit of some check
         self.conflicted_sync = False
 
     def local_check(self):
@@ -904,6 +906,7 @@ class DirSnapshotManager(object):
         try:
             paths_of_file.remove(get_relpath(body["src_path"]))
         except ValueError:
+            #if it is in internal conflict check sinchronize the error is inhibit
             if not self.conflicted_sync:
                 raise
         paths_of_file.append(get_relpath(body["dst_path"]))
@@ -917,6 +920,7 @@ class DirSnapshotManager(object):
                 self.local_full_snapshot[md5_file].remove(
                     get_relpath(body['src_path']))
             except ValueError:
+                #if it is in internal conflict check sinchronize the error is inhibit
                 if not self.conflicted_sync:
                     raise
             if len(self.local_full_snapshot[md5_file]) == 0:
