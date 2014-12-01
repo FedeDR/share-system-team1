@@ -441,9 +441,7 @@ class EnvironmentManager(object):
             folder)
         if not os.path.exists(path):
             os.makedirs(path)
-            if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
-                self.dmn_istance_list[ist_id]['svr_filelist'] = {}
-            self.dmn_istance_list[ist_id]['svr_filelist'][folder] = [
+            self.dmn_istance_list[ist_id].setdefault('svr_filelist', {})[folder] = [
                 os.path.join(self.dmn_istance_list[ist_id]['usr'], folder),
                 None,
                 self.sync_time
@@ -464,20 +462,17 @@ class EnvironmentManager(object):
         if 'svr_filelist' not in self.dmn_istance_list[ist_id]:
             self.dmn_istance_list[ist_id]['svr_filelist'] = {}
 
-        for e_file in range(num_file):
+        for e_file in xrange(num_file):
             filename, full_path, md5 = create_file(dst_path)
             rel_path = os.path.relpath(
                 full_path,
                 self.dmn_istance_list[ist_id]['rawbox_dir'])
 
-            if filename not in self.dmn_istance_list[ist_id]['svr_filelist']:
-                self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = []
-
-            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(
-                os.path.join(self.dmn_istance_list[ist_id]['usr'], rel_path))
-            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(md5)
-            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path].append(
-                self.sync_time)
+            self.dmn_istance_list[ist_id]['svr_filelist'][rel_path] = [
+                os.path.join(self.dmn_istance_list[ist_id]['usr'], rel_path),
+                md5,
+                self.sync_time
+            ]
 
 
 def check_folder(src_folder, dst_folder):
